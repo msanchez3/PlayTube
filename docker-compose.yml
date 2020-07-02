@@ -1,0 +1,63 @@
+version: "3.3" #Version of the file
+services: #Services what we implement on the server
+  plex: #Plex service
+    image: linuxserver/plex #Image of the container
+    container_name: plex #The name of container
+    network_mode: host #This means the plex service have the same network configuration like machine
+    environment: #Me configuration of plex
+      - PUID=1000
+      - PGID=1000
+      - VERSION=docker
+      - UMASK_SET=022 #optional, it's for create a permisions
+    volumes: #Shared folders (with this we can connect all containers)
+      - /home/share/plex/library:/config # The same shared folders on the services
+      - /home/share/plex/tvseries:/tv # /
+      - /home/share/plex/movies:/movies # /
+    ports: #Ports we use
+      - 32400:32400 #We use this port for acces to the pelex service
+    restart: unless-stopped # This restart always the container, if it stoped
+
+  qbittorrent: #zBittorrent service
+    image: linuxserver/qbittorrent #Image of the container
+    container_name: qbittorrent #The name of container
+    environment: #Me configuration of qBittorrent
+        - PUID=1000
+        - PGID=1000
+        - TZ=Europe/London #The selected time line
+        - UMASK_SET=022 #optional, it's for create a permisions
+        - WEBUI_PORT=8909 #This is the port what connect the webgui
+    volumes: #Shared folders (with this we can connect all containers)
+      - /home/share/plex/library:/config # The same shared folders on the services
+      - /home/share/plex/tvseries:/tv # /
+      - /home/share/plex/movies:/movies # /
+    ports: #Ports we use
+        - 6881:6881 #Ports we use for download torrents
+        - 6881:6881/udp #Ports we use for download torrents
+        - 8909:8909 #The port what you use for connect the GUI
+    restart: unless-stopped # This restart always the container, if it stoped
+
+  db: #DataBase service
+    image: mysql:5.7 #Image of the container
+    volumes:
+      - db_data:/var/lib/mysql #Shared folders (with this we can connect all containers)
+    restart: always #When the machine starts, this container too
+    environment: #Me configuration of DB
+      MYSQL_ROOT_PASSWORD: msanchez
+      MYSQL_DATABASE: DBplay
+      MYSQL_USER: msanchez
+      MYSQL_PASSWORD: msanchez
+
+  wordpress: #Wordpress service
+    depends_on: #You need something for this service can function
+      - db #In this case is the db (DataBase)
+    image: wordpress:latest #Image of the container
+    ports:
+      - "8080:80" #This is the port what connect the webgui
+    restart: always #When the machine starts, this container too
+    environment: # Me configuration of wordpress
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: msanchez
+      WORDPRESS_DB_PASSWORD: msanchez
+      WORDPRESS_DB_NAME: DBplay
+volumes:
+    db_data: {}
